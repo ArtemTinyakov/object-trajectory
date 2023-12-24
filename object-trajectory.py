@@ -2,6 +2,9 @@ import flet as ft
 import numpy as np
 
 
+stop = False
+
+
 def is_number(page, flet_container, coef=1.):
     try:
         res = float(flet_container.value)*coef
@@ -13,6 +16,9 @@ def is_number(page, flet_container, coef=1.):
 
 
 def calculate_and_draw_trajectory(page, points, injector_points, chart, mass, velocity, conveyor_height, injector_x, injector_y, angle, injector_pulse, injector_diameter, object_length):
+    global stop
+    chart.max_x = 4
+    chart.max_y = 3
     injector_work_time = 0
     mass_ = is_number(page, mass)
     velocity_ = is_number(page, velocity)
@@ -51,6 +57,9 @@ def calculate_and_draw_trajectory(page, points, injector_points, chart, mass, ve
     page.update()
 
     while y > 0 and x < 10:
+        if stop:
+            stop = False
+            return injector_work_time
         if y > chart.max_y:
             chart.max_y += 2
         if x > chart.max_x:
@@ -85,6 +94,17 @@ def main(page: ft.Page):
             error_message.value = "вы заполнили не все поля"
             page.update()
 
+    def stop_btn_click(e):
+        global stop
+        stop = True
+
+    def clear_btn_click(e):
+        points.data_points.clear()
+        injector_points.data_points.clear()
+        exposure_time.value = ""
+        error_message.value = ""
+        page.update()
+
     mass = ft.TextField(label="масса объекта, кг", autofocus=True, hint_text="0.1", color="orange")
     velocity = ft.TextField(label="скорость ленты, м/сек", autofocus=True, hint_text="0.4", color="orange")
     conveyor_height = ft.TextField(label="высота ленты, м", autofocus=True, hint_text="1", color="orange")
@@ -95,10 +115,12 @@ def main(page: ft.Page):
     injector_diameter = ft.TextField(label="диаметр выходного сечения, мм", autofocus=True, hint_text="10", color="orange")
     object_length = ft.TextField(label="длина участка обдувания, мм", autofocus=True, hint_text="30", color="orange")
     button = ft.ElevatedButton(text="построить график", on_click=btn_click, color="orange")
+    button_stop = ft.ElevatedButton(text="остановить", on_click=stop_btn_click, color="orange")
+    button_clear = ft.ElevatedButton(text="очистить", on_click=clear_btn_click, color="orange")
     exposure_time = ft.Text(color="orange")
     error_message = ft.Text(color="red")
 
-    settings = ft.Column(controls=[mass, velocity, conveyor_height, injector_x, injector_y, angle, injector_pulse, injector_diameter, object_length, button, exposure_time, error_message], expand=False, horizontal_alignment=ft.CrossAxisAlignment.CENTER, wrap=True)
+    settings = ft.Column(controls=[mass, velocity, conveyor_height, injector_x, injector_y, angle, injector_pulse, injector_diameter, object_length, button, ft.Row([button_stop, button_clear]), exposure_time, error_message], expand=False, horizontal_alignment=ft.CrossAxisAlignment.CENTER, wrap=True)
 
     points = ft.LineChartData(stroke_width=3, color=ft.colors.PINK, curved=True, stroke_cap_round=True,)
 
@@ -111,7 +133,7 @@ def main(page: ft.Page):
                                               color="orange",
                                               size=10, ),
                                       margin=ft.margin.only(top=15), ),
-                                  ) for i in range(41)]
+                                  ) for i in range(101)]
 
     y_labels = [ft.ChartAxisLabel(value=i/10,
                                   label=ft.Container(
@@ -120,7 +142,7 @@ def main(page: ft.Page):
                                               color="orange",
                                               size=10, ),
                                       margin=ft.margin.only(right=15), ),
-                                  ) for i in range(31)]
+                                  ) for i in range(101)]
 
     chart = ft.LineChart(
         left_axis=ft.ChartAxis(
