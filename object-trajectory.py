@@ -8,6 +8,7 @@ stop = False
 def is_number(page, flet_container, coef=1.):
     try:
         res = float(flet_container.value)*coef
+        flet_container.error_text = ""
         return res
     except ValueError:
         flet_container.error_text = "некорректный ввод"
@@ -33,7 +34,7 @@ def calculate_and_draw_trajectory(page, points, injector_points, chart, mass, ve
     if not mass_ or not velocity_ or not conveyor_height_ or not injector_x_ or not injector_y_ or not angle_ or not injector_pulse_ or not injector_diameter_ or not object_length_:
         return
 
-    if angle_ < 0 or angle_ > 90:
+    if float(angle.value) < 0 or float(angle.value) > 90:
         angle.error_text = "угол должен быть от 0 до 90"
         page.update()
         return
@@ -56,6 +57,7 @@ def calculate_and_draw_trajectory(page, points, injector_points, chart, mass, ve
     injector_points.data_points.append(ft.LineChartDataPoint(x_h, y_h))
     page.update()
 
+    stop = False
     while y > 0 and x < 10:
         if stop:
             stop = False
@@ -99,12 +101,27 @@ def main(page: ft.Page):
         stop = True
 
     def clear_btn_click(e):
+        global stop
+        stop = True
+        angle.error_text = ""
         points.data_points.clear()
         injector_points.data_points.clear()
         exposure_time.value = ""
         error_message.value = ""
         page.update()
 
+    def theme_changed(e):
+        page.theme_mode = (
+            ft.ThemeMode.DARK
+            if page.theme_mode == ft.ThemeMode.LIGHT
+            else ft.ThemeMode.LIGHT
+        )
+        theme.label = (
+            "light" if page.theme_mode == ft.ThemeMode.LIGHT else "dark"
+        )
+        page.update()
+
+    theme = ft.Switch(label="dark", value=True, on_change=theme_changed, label_position=ft.LabelPosition.LEFT, active_color="orange", active_track_color="black", adaptive=True)
     mass = ft.TextField(label="масса объекта, кг", autofocus=True, hint_text="0.1", color="orange")
     velocity = ft.TextField(label="скорость ленты, м/сек", autofocus=True, hint_text="0.4", color="orange")
     conveyor_height = ft.TextField(label="высота ленты, м", autofocus=True, hint_text="1", color="orange")
@@ -120,7 +137,7 @@ def main(page: ft.Page):
     exposure_time = ft.Text(color="orange")
     error_message = ft.Text(color="red")
 
-    settings = ft.Column(controls=[mass, velocity, conveyor_height, injector_x, injector_y, angle, injector_pulse, injector_diameter, object_length, button, ft.Row([button_stop, button_clear]), exposure_time, error_message], expand=False, horizontal_alignment=ft.CrossAxisAlignment.CENTER, wrap=True)
+    settings = ft.Column(controls=[theme, mass, velocity, conveyor_height, injector_x, injector_y, angle, injector_pulse, injector_diameter, object_length, button, ft.Row([button_stop, button_clear]), exposure_time, error_message], expand=False, horizontal_alignment=ft.CrossAxisAlignment.CENTER, wrap=True)
 
     points = ft.LineChartData(stroke_width=3, color=ft.colors.PINK, curved=True, stroke_cap_round=True,)
 
@@ -168,6 +185,7 @@ def main(page: ft.Page):
         expand=True,
     )
 
+    page.theme_mode = ft.ThemeMode.DARK
     page.title = "расчёт траектории объекта"
     page.add(ft.Row([settings, chart], vertical_alignment=ft.CrossAxisAlignment.CENTER, expand=True, alignment=ft.MainAxisAlignment.CENTER))
 
